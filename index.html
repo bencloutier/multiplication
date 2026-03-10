@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multiplication Explorer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #eef0f7;
+      min-height: 100vh;
+      color: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-bar {
+      background: linear-gradient(135deg, #4f6ef7, #7c5ce7);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .top-bar h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.02em;
+    }
+
+    .size-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .size-control label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .size-control input[type="number"] {
+      width: 56px;
+      padding: 5px 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      border: 2px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.15);
+      color: white;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .size-control input[type="number"]:focus {
+      border-color: white;
+    }
+
+    .equation-display {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      background: white;
+      border: 2px solid #e2e5ea;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      min-width: 220px;
+      max-width: 360px;
+      text-align: center;
+      line-height: 1.5;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: none;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+
+    .equation-display.visible {
+      opacity: 1;
+    }
+
+    .equation-display .primary {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #4f6ef7;
+    }
+
+    .equation-display .others {
+      color: #2d8a4e;
+      font-weight: 500;
+      font-size: 0.78rem;
+      margin-top: 2px;
+    }
+
+    .table-center {
+      flex: 1;
+      text-align: center;
+      overflow: auto;
+      padding: 16px;
+    }
+
+    .table-wrapper {
+      display: inline-block;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #d0d5dd;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    table {
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    td, th {
+      width: 44px;
+      height: 36px;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid #e8eaed;
+      cursor: default;
+      transition: background 0.1s;
+      user-select: none;
+    }
+
+    .header-cell {
+      background: #3b3f5c;
+      color: rgba(255,255,255,0.92);
+      font-size: 0.78rem;
+      font-weight: 700;
+      position: sticky;
+      z-index: 3;
+      border-color: #4a4f6e;
+    }
+
+    .header-cell.row-header {
+      left: 0;
+    }
+
+    .header-cell.col-header {
+      top: 0;
+    }
+
+    .corner-cell {
+      background: #2b2e47;
+      position: sticky;
+      top: 0;
+      left: 0;
+      z-index: 4;
+      border-color: #4a4f6e;
+    }
+
+    .data-cell {
+      background: white;
+      color: #444;
+    }
+
+    .data-cell.band {
+      background: #f5f6fa;
+    }
+
+    .data-cell:hover {
+      background: #ffe066 !important;
+      color: #1a1a2e;
+      font-weight: 700;
+      z-index: 2;
+      box-shadow: inset 0 0 0 2px #f0c000;
+    }
+
+    .data-cell.highlight-row {
+      background: #ede7f6;
+    }
+
+    .data-cell.highlight-col {
+      background: #e8eaf6;
+    }
+
+    .data-cell.highlight-both {
+      background: #5c6bc0 !important;
+      color: white;
+      font-weight: 700;
+    }
+
+    .header-cell.highlight-row,
+    .header-cell.highlight-col {
+      background: #5c6bc0;
+    }
+
+    .data-cell.square {
+      color: #e65100;
+      font-weight: 600;
+    }
+
+    .data-cell.highlight-same {
+      background: #c8e6c9 !important;
+      color: #1b5e20;
+      font-weight: 700;
+      box-shadow: inset 0 0 0 2px #66bb6a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <h1>Multiplication Explorer</h1>
+    <div class="size-control">
+      <label for="sizeInput">Size</label>
+      <input type="number" id="sizeInput" value="20" min="2" max="50" />
+    </div>
+  </div>
+
+  <div class="equation-display" id="tooltip"></div>
+
+  <div class="table-center">
+    <div class="table-wrapper" id="tableWrapper"></div>
+  </div>
+
+  <script>
+    const sizeInput = document.getElementById('sizeInput');
+    const wrapper = document.getElementById('tableWrapper');
+    const tooltip = document.getElementById('tooltip');
+
+    let currentSize = 20;
+    let pinnedCell = null;
+
+    function buildTable(size) {
+      const table = document.createElement('table');
+
+      for (let row = 0; row <= size; row++) {
+        const tr = document.createElement('tr');
+
+        for (let col = 0; col <= size; col++) {
+          let cell;
+
+          if (row === 0 && col === 0) {
+            cell = document.createElement('th');
+            cell.className = 'header-cell corner-cell';
+          } else if (row === 0) {
+            cell = document.createElement('th');
+            cell.className = 'header-cell col-header';
+            cell.dataset.col = col;
+            cell.textContent = col;
+          } else if (col === 0) {
+            cell = document.createElement('th');
+            cell.className = 'header-cell row-header';
+            cell.dataset.row = row;
+            cell.textContent = row;
+          } else {
+            cell = document.createElement('td');
+            cell.className = 'data-cell';
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            const val = row * col;
+            cell.textContent = val;
+            if (row === col) cell.classList.add('square');
+            if ((row + col) % 2 === 0) cell.classList.add('band');
+          }
+
+          tr.appendChild(cell);
+        }
+
+        table.appendChild(tr);
+      }
+
+      return table;
+    }
+
+    function clearHighlights() {
+      wrapper.querySelectorAll('.highlight-row, .highlight-col, .highlight-both, .highlight-same').forEach(el => {
+        el.classList.remove('highlight-row', 'highlight-col', 'highlight-both', 'highlight-same');
+      });
+      wrapper.querySelectorAll('.header-cell.highlight-row, .header-cell.highlight-col').forEach(el => {
+        el.classList.remove('highlight-row', 'highlight-col');
+      });
+    }
+
+    function highlightCell(row, col) {
+      clearHighlights();
+
+      const targetVal = row * col;
+
+      wrapper.querySelectorAll('.data-cell').forEach(cell => {
+        const r = +cell.dataset.row;
+        const c = +cell.dataset.col;
+        const v = r * c;
+        if (r === row && c === col) {
+          cell.classList.add('highlight-both');
+        } else if (v === targetVal) {
+          cell.classList.add('highlight-same');
+        } else if (r === row) {
+          cell.classList.add('highlight-row');
+        } else if (c === col) {
+          cell.classList.add('highlight-col');
+        }
+      });
+
+      wrapper.querySelectorAll('.col-header').forEach(cell => {
+        if (+cell.dataset.col === col) cell.classList.add('highlight-col');
+      });
+      wrapper.querySelectorAll('.row-header').forEach(cell => {
+        if (+cell.dataset.row === row) cell.classList.add('highlight-row');
+      });
+    }
+
+    function showTooltip(row, col, size) {
+      const val = row * col;
+      const pairs = [];
+      for (let a = 1; a <= size; a++) {
+        if (val % a === 0) {
+          const b = val / a;
+          if (b >= 1 && b <= size && !(a === row && b === col)) {
+            pairs.push(`${a} \u00d7 ${b}`);
+          }
+        }
+      }
+      let html = `<div class="primary">${row} \u00d7 ${col} = ${val}</div>`;
+      if (pairs.length > 0) {
+        html += `<div class="others">Also: ${pairs.join(', ')}</div>`;
+      }
+      tooltip.innerHTML = html;
+      tooltip.classList.add('visible');
+    }
+
+    function render(size) {
+      wrapper.innerHTML = '';
+      pinnedCell = null;
+      tooltip.classList.remove('visible');
+
+      const table = buildTable(size);
+
+      table.addEventListener('mouseover', e => {
+        if (pinnedCell) return;
+        const cell = e.target.closest('.data-cell');
+        if (!cell) return;
+        const row = +cell.dataset.row;
+        const col = +cell.dataset.col;
+        highlightCell(row, col);
+        showTooltip(row, col, currentSize);
+      });
+
+      table.addEventListener('mouseout', e => {
+        if (pinnedCell) return;
+        const cell = e.target.closest('.data-cell');
+        if (!cell) return;
+        clearHighlights();
+        tooltip.classList.remove('visible');
+      });
+
+      table.addEventListener('click', e => {
+        const cell = e.target.closest('.data-cell');
+        if (!cell) {
+          pinnedCell = null;
+          clearHighlights();
+          tooltip.classList.remove('visible');
+          return;
+        }
+
+        const row = +cell.dataset.row;
+        const col = +cell.dataset.col;
+
+        if (pinnedCell && pinnedCell.row === row && pinnedCell.col === col) {
+          pinnedCell = null;
+          clearHighlights();
+          tooltip.classList.remove('visible');
+        } else {
+          pinnedCell = { row, col };
+          highlightCell(row, col);
+          showTooltip(row, col, currentSize);
+        }
+      });
+
+      wrapper.appendChild(table);
+    }
+
+    render(currentSize);
+
+    sizeInput.addEventListener('change', () => {
+      let val = parseInt(sizeInput.value, 10);
+      if (isNaN(val) || val < 2) val = 2;
+      if (val > 50) val = 50;
+      sizeInput.value = val;
+      currentSize = val;
+      render(currentSize);
+    });
+  </script>
+</body>
+</html>
